@@ -12,10 +12,11 @@
 
 #include "buffer/buffer_pool_manager_instance.h"
 
+#include "common/config.h"
 #include "common/macros.h"
+#include "storage/page/page.h"
 
 namespace bustub {
-
 BufferPoolManagerInstance::BufferPoolManagerInstance(size_t pool_size, DiskManager *disk_manager,
                                                      LogManager *log_manager)
     : BufferPoolManagerInstance(pool_size, 1, 0, disk_manager, log_manager) {}
@@ -62,6 +63,41 @@ Page *BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) {
   // 2.   Pick a victim page P from either the free list or the replacer. Always pick from the free list first.
   // 3.   Update P's metadata, zero out memory and add P to the page table.
   // 4.   Set the page ID output parameter. Return a pointer to P.
+
+  // If no free page slot and all current pages are pinned
+  if (free_list_.empty()) {
+    size_t total_pinned_count = 0;
+    for( const auto& [pageID, frameID] : page_table_ ) {
+        total_pinned_count += pages_[frameID].pin_count_;
+    }
+
+    if (total_pinned_count == pool_size_) {
+        return nullptr;
+    }
+  }
+
+  page_id_t new_page_id = AllocatePage();
+  frame_id_t new_frame_id = GetVictimPage();
+
+  // Update metadata of the new page
+  page_id_t old_page_id = pages_[new_frame_id].page_id_;
+  pages_[new_frame_id].page_id_ = new_page_id;
+  pages_[new_frame_id].pin_count_ = 1;
+  pages_[new_frame_id].is_dirty_ = false;  
+  // Zero out its actual data for future loading
+  pages_[new_frame_id].ResetMemory();
+
+  // Update the page table
+  page_table_.erase(old_page_id);
+  page_table_.insert({new_page_id, new_frame_id});
+
+  *page_id = new_page_id;
+  return &pages_[new_frame_id];
+  
+  // 3.   Update P's metadata, zero out memory and add P to the page table.
+  // 4.   Set the page ID output parameter. Return a pointer to P.  
+  
+    
   return nullptr;
 }
 
@@ -82,6 +118,13 @@ bool BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) {
   // 1.   If P does not exist, return true.
   // 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
   // 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
+
+  // // Cant find the page in PT
+  // if (page_table_.find(page_id) == page_table_.end()) {
+  //     return true;
+  // }
+
+  // GetPinCount()
   return false;
 }
 
@@ -96,6 +139,19 @@ page_id_t BufferPoolManagerInstance::AllocatePage() {
 
 void BufferPoolManagerInstance::ValidatePageId(const page_id_t page_id) const {
   assert(page_id % num_instances_ == instance_index_);  // allocated pages mod back to this BPI
+}
+
+frame_id_t BufferPoolManagerInstance::GetVictimPage() {
+  // First check if there is any page available in the free list
+    if (!free_list_.empty()) {
+        return free_list_.front();
+    }
+
+    // Then, find one in the replacer using LRU
+    frame_id_t new_frame_id = -2;
+    replacer_->Victim(&new_frame_id);
+    
+    return new_frame_id;
 }
 
 }  // namespace bustub

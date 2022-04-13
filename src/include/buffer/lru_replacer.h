@@ -16,6 +16,8 @@
 #include <mutex>  // NOLINT
 #include <vector>
 
+#include <algorithm>
+
 #include "buffer/replacer.h"
 #include "common/config.h"
 
@@ -25,7 +27,7 @@ namespace bustub {
  * LRUReplacer implements the Least Recently Used replacement policy.
  */
 class LRUReplacer : public Replacer {
- public:
+ public:  
   /**
    * Create a new LRUReplacer.
    * @param num_pages the maximum number of pages the LRUReplacer will be required to store
@@ -47,6 +49,8 @@ class LRUReplacer : public Replacer {
 
  private:
   // TODO(student): implement me!
+  size_t size;
+  std::list<frame_id_t> queueFrames;
 };
 
 }  // namespace bustub
