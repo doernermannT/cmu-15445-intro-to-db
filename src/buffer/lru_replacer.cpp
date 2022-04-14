@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "buffer/lru_replacer.h"
+#include <iostream>
 
 namespace bustub {
 
@@ -53,4 +54,8 @@ namespace bustub {
       }
     }
 
+    std::list<frame_id_t> LRUReplacer::GetQueueFrames() {
+        return queueFrames;
+    }
+    
 }  // namespace bustub

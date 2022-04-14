@@ -12,6 +12,8 @@
 
 #include "buffer/buffer_pool_manager_instance.h"
 #include <cstdio>
+#include <iostream>
+#include <ostream>
 #include <random>
 #include <string>
 #include "buffer/buffer_pool_manager.h"
@@ -69,16 +71,18 @@ TEST(BufferPoolManagerInstanceTest, BinaryDataTest) {
     EXPECT_EQ(true, bpm->UnpinPage(i, true));
     bpm->FlushPage(i);
   }
+
   for (int i = 0; i < 5; ++i) {
     EXPECT_NE(nullptr, bpm->NewPage(&page_id_temp));
     bpm->UnpinPage(page_id_temp, false);
   }
+
   // Scenario: We should be able to fetch the data we wrote a while ago.
   page0 = bpm->FetchPage(0);
   EXPECT_EQ(0, memcmp(page0->GetData(), random_binary_data, PAGE_SIZE));
   EXPECT_EQ(true, bpm->UnpinPage(0, true));
 
-  // Shutdown the disk manager and remove the temporary file we created.
+  // shutdown the disk manager and remove the temporary file we created.
   disk_manager->ShutDown();
   remove("test.db");
 
@@ -87,7 +91,8 @@ TEST(BufferPoolManagerInstanceTest, BinaryDataTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(BufferPoolManagerInstanceTest, DISABLED_SampleTest) {
+// TEST(BufferPoolManagerInstanceTest, DISABLED_SampleTest) {
+TEST(BufferPoolManagerInstanceTest, SampleTest) {
   const std::string db_name = "test.db";
   const size_t buffer_pool_size = 10;
 

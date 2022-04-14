@@ -47,6 +47,8 @@ class LRUReplacer : public Replacer {
 
   size_t Size() override;
 
+  std::list<frame_id_t> GetQueueFrames() override;
+
  private:
   // TODO(student): implement me!
   size_t size;

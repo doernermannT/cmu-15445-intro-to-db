@@ -127,6 +127,13 @@ class BufferPoolManagerInstance : public BufferPoolManager {
    * @return frame id of the victim page.
    */
   frame_id_t GetVictimPage();
+
+  /**
+   * Find if a page is in the page table.
+   * @param page_id_t page_id: ID of the page
+   * @return true if found; false otherwise.
+   */
+  bool IsInPageTable(page_id_t page_id);
   
   /** Number of pages in the buffer pool. */
   const size_t pool_size_;

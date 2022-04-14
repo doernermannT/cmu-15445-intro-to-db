@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <list>
 #include "common/config.h"
 
 namespace bustub {
@@ -45,6 +46,8 @@ class Replacer {
 
   /** @return the number of elements in the replacer that can be victimized */
   virtual size_t Size() = 0;
+
+    virtual std::list<frame_id_t> GetQueueFrames() = 0;
 };
 
 }  // namespace bustub
