@@ -20,11 +20,10 @@
 
 #include <iostream>
 
-void printFreeList(std::list<bustub::frame_id_t> const &list)
-{
+void PrintFreeList(std::list<bustub::frame_id_t> const &list) {
     std::copy(list.begin(),
-            list.end(),
-            std::ostream_iterator<bustub::frame_id_t>(std::cout, "\n"));
+              list.end(),
+              std::ostream_iterator<bustub::frame_id_t>(std::cout, "\n"));
 }
 
 namespace bustub {
@@ -76,19 +75,22 @@ namespace bustub {
             disk_manager_->WritePage(page_id, pages_[frame_id].data_);
         }
 
-        // Zero out its actual data for future loading
-        pages_[frame_id].ResetMemory();
+        // // Zero out its actual data for future loading
+        // pages_[frame_id].ResetMemory();
 
-        // TODO:: do a documentation
-        // free_list_.push_back(frame_id);  // Update the free list
-        page_table_.erase(page_id);  // Update the page table
+        // // TODO:: do a documentation
+        // // free_list_.push_back(frame_id);  // Update the free list
+        // page_table_.erase(page_id);  // Update the page table
 
         // Make sure you call DiskManager::WritePage!
         return true;
     }
 
     void BufferPoolManagerInstance::FlushAllPgsImp() {
-        // You can do it!
+      // You can do it!
+      for (const auto &[page_id, frame_id] : page_table_) {
+          if (FlushPgImp(page_id)) {}
+      }
     }
 
     Page *BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) {
@@ -111,6 +113,7 @@ namespace bustub {
         
         page_id_t old_page_id = pages_[new_frame_id].page_id_;        
         if (FlushPgImp(old_page_id)) {}
+        if (DeletePgImp(old_page_id)) {}
         
         // Update metadata of the new page
         pages_[new_frame_id].page_id_ = new_frame_id;
@@ -123,7 +126,7 @@ namespace bustub {
         free_list_.remove(new_frame_id);
   
         // Update the page table
-        page_table_.erase(old_page_id);
+        // page_table_.erase(old_page_id);
         page_table_.insert({new_page_id, new_frame_id});
 
         // Store (meta)data into the passed-in variable
@@ -140,39 +143,33 @@ namespace bustub {
         // 3.     Delete R from the page table and insert P.
         // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
 
-        // Retrieve the page if it's in the page table
+        // Retrieve the page directly if it's in the page table
         if (IsInPageTable(page_id)) {
             frame_id_t frame_id = page_table_[page_id];    
             pages_[frame_id].pin_count_ = 1;
             return &pages_[frame_id];
         }
 
-        // std::cout << "here1\n";        
         // Cant find a victim page because free list is full and
         // all existing pages are pinned
         frame_id_t victim_frame_id = GetVictimPage();
-        // std::cout << "victim id is" << victim_frame_id << "\n";
-
-        // std::cout << "free_list is \n";
-        // printFreeList(free_list_);
-
-        // std::cout << "queue_frame is \n";
-        // printFreeList(replacer_->GetQueueFrames());
         if (victim_frame_id < 0) {
             return nullptr;
         }
 
-        std::cout << "victim id is " << victim_frame_id << "\n";        
-        std::cout << "here2\n";
+        // Write back to disk and delete it in memory if necessary
         if (FlushPgImp(victim_frame_id)) {}  // Call flush
+        if (DeletePgImp(victim_frame_id)) {}  // Call delete
 
+        // Update the page table + free list
         page_table_.insert({page_id, victim_frame_id});
-        // No need to update the pages_ as it's only a place holder
-    
+        free_list_.remove(victim_frame_id);
+        // No need to update the pages_ as it's only a place holder        
+
+        // Update the metadata
         // Read in page from the disk
         char page_data[PAGE_SIZE] = {0};  // Initialize empty page data stream
         disk_manager_->ReadPage(page_id, page_data);  // Read disk page into memory page
-
         // Update the page itself after its memory has been zeroed out
         std::memcpy(pages_[victim_frame_id].GetData(), page_data, PAGE_SIZE);
         pages_[victim_frame_id].page_id_ = page_id;      
