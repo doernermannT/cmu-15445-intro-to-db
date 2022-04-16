@@ -27,7 +27,7 @@ namespace bustub {
  */
 class Page {
   // There is book-keeping information inside the page that should only be relevant to the buffer pool manager.
-    friend class BufferPoolManagerInstance; // Let this class to access the private fields of Page  
+  friend class BufferPoolManagerInstance;  // Let this class to access the private fields of Page
 
  public:
   /** Constructor. Zeros out the page data. */

@@ -15,47 +15,46 @@
 
 namespace bustub {
 
-    LRUReplacer::LRUReplacer(size_t num_pages) : size(0), queueFrames({}) {}
-    
-    LRUReplacer::~LRUReplacer() = default;
+LRUReplacer::LRUReplacer(size_t num_pages) : queue_size_(0), queue_frame_({}) {}
 
-    void LRUReplacer::Unpin(frame_id_t frame_id) {
-      // Check if the frame already in queue
-      auto framePos = std::find(queueFrames.begin(), queueFrames.end(), frame_id);
-      if (framePos == queueFrames.end()) {
-        queueFrames.push_back(frame_id);
-        size++;
-      }
-    }
+LRUReplacer::~LRUReplacer() = default;
 
-    size_t LRUReplacer::Size() { return size; }
+void LRUReplacer::Unpin(frame_id_t frame_id) {
+  const std::lock_guard<std::mutex> lock(latch_);  
+  // Check if the frame already in queue
+  auto frame_pos = std::find(queue_frame_.begin(), queue_frame_.end(), frame_id);
+  if (frame_pos == queue_frame_.end()) {
+    queue_frame_.push_back(frame_id);
+    queue_size_++;
+  }
+}
 
-    bool LRUReplacer::Victim(frame_id_t *frame_id) {
-      // If the replacer is empty
-      if (size == 0) {
-          *frame_id = -1;
-          return false;
-      }
+size_t LRUReplacer::Size() { return queue_size_; }
 
-      // deque and update size
-      *frame_id = queueFrames.front();
-      queueFrames.pop_front();
-      size--;
+bool LRUReplacer::Victim(frame_id_t *frame_id) {
+  const std::lock_guard<std::mutex> lock(latch_);  
+  // If the replacer is empty
+  if (queue_size_ == 0) {
+    *frame_id = -1;
+    return false;
+  }
 
-      return true;
-    }
+  // deque and update size
+  *frame_id = queue_frame_.front();
+  queue_frame_.pop_front();
+  queue_size_--;
 
-    void LRUReplacer::Pin(frame_id_t frame_id) {
-      auto framePos = std::find(queueFrames.begin(), queueFrames.end(), frame_id);
+  return true;
+}
 
-      if (framePos != queueFrames.end()) {
-        size--;
-        queueFrames.erase(framePos);
-      }
-    }
+void LRUReplacer::Pin(frame_id_t frame_id) {
+  const std::lock_guard<std::mutex> lock(latch_);  
+  auto frame_pos = std::find(queue_frame_.begin(), queue_frame_.end(), frame_id);
 
-    std::list<frame_id_t> LRUReplacer::GetQueueFrames() {
-        return queueFrames;
-    }
-    
+  if (frame_pos != queue_frame_.end()) {
+    queue_size_--;
+    queue_frame_.erase(frame_pos);
+  }
+}
+
 }  // namespace bustub

@@ -27,7 +27,7 @@ namespace bustub {
  * LRUReplacer implements the Least Recently Used replacement policy.
  */
 class LRUReplacer : public Replacer {
- public:  
+ public:
   /**
    * Create a new LRUReplacer.
    * @param num_pages the maximum number of pages the LRUReplacer will be required to store
@@ -47,12 +47,11 @@ class LRUReplacer : public Replacer {
 
   size_t Size() override;
 
-  std::list<frame_id_t> GetQueueFrames() override;
-
  private:
   // TODO(student): implement me!
-  size_t size;
-  std::list<frame_id_t> queueFrames;
+  size_t queue_size_;
+  std::list<frame_id_t> queue_frame_;
+  std::mutex latch_;  
 };
 
 }  // namespace bustub

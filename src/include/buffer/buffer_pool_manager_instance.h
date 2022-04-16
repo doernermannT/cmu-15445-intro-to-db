@@ -134,7 +134,7 @@ class BufferPoolManagerInstance : public BufferPoolManager {
    * @return true if found; false otherwise.
    */
   bool IsInPageTable(page_id_t page_id);
-  
+
   /** Number of pages in the buffer pool. */
   const size_t pool_size_;
   /** How many instances are in the parallel BPM (if present, otherwise just 1 BPI) */
