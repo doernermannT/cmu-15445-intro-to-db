@@ -135,7 +135,7 @@ Page *BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) {
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
   // const std::lock_guard<std::mutex> lock(latch_);
 
-  // return nullptr;
+  return nullptr;
 
   // // Retrieve the page directly if it's in the page table
   // if (IsInPageTable(page_id)) {
@@ -174,47 +174,6 @@ Page *BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) {
   // pages_[victim_frame_id].pin_count_ = 1;
 
   // return &pages_[victim_frame_id];
-
-  std::scoped_lock lock{latch_};
-  auto iter = page_table_.find(page_id);
-  // 如果存在，即Page在缓冲池中
-  if (iter != page_table_.end()) {
-    // 找到这个页面，Pin它并返回它
-    frame_id_t frame_id = iter->second;
-    Page *page = &pages_[frame_id];
-    page->pin_count_++;
-    replacer_->Pin(frame_id);
-    return page;
-  }
-  // 不存在，即Page在磁盘中
-  // 优先从freelist里获取空页，没有就去replacer中找一个，如果都找不到就返回nullptr
-  frame_id_t frame_id = -1;
-  Page *page = nullptr;
-  if (!free_list_.empty()) {
-    frame_id = free_list_.front();
-    free_list_.pop_front();
-    page = &pages_[frame_id];
-  } else if (replacer_->Victim(&frame_id)) {
-    page = &pages_[frame_id];
-    // 从replacer中找到的页面要从pagetable中先删除
-    if (page->IsDirty()) {
-      disk_manager_->WritePage(page->GetPageId(), page->GetData());
-    }
-    page_table_.erase(page->GetPageId());
-  } else {
-    return nullptr;
-  }
-
-  // 重置状态
-  page->page_id_ = page_id;
-  page->pin_count_ = 1;
-  page->is_dirty_ = false;
-  // 填充Page内容
-  disk_manager_->ReadPage(page_id, page->GetData());
-  // 添加到pagetable，Pin该页面并返回数据
-  page_table_[page_id] = frame_id;
-  replacer_->Pin(frame_id);
-  return page;  
 }
 
 bool BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) {
