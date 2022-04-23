@@ -123,12 +123,6 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   void ValidatePageId(page_id_t page_id) const;
 
   /**
-   * Pick a victim page P from either the free list or the replacer. Always pick from the free list first.
-   * @return frame id of the victim page.
-   */
-  frame_id_t GetVictimPage();
-
-  /**
    * Find if a page is in the page table.
    * @param page_id_t page_id: ID of the page
    * @return true if found; false otherwise.
