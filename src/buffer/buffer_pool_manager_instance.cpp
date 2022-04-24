@@ -53,7 +53,7 @@ BufferPoolManagerInstance::~BufferPoolManagerInstance() {
  * @return false if the page could not be found in the page table, true otherwise
  */
 bool BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) {
-  std::scoped_lock lock{latch_};  
+  const std::lock_guard<std::mutex> lock(latch_);  
   // Cant find the page in the PT or the page ID is invalid
   if (!IsInPageTable(page_id) || (page_id == INVALID_PAGE_ID)) {
     return false;
