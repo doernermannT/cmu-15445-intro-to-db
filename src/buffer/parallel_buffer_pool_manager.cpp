@@ -31,7 +31,6 @@ ParallelBufferPoolManager::ParallelBufferPoolManager(size_t num_instances, size_
 }
 
 // Update constructor to destruct all BufferPoolManagerInstances and deallocate any associated memory
-// ParallelBufferPoolManager::~ParallelBufferPoolManager() = default;
 ParallelBufferPoolManager::~ParallelBufferPoolManager() {
   for (size_t i = 0; i < num_instances_; i++) {
       delete bpmis_[i];
