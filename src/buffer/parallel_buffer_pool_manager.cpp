@@ -48,12 +48,12 @@ bool ParallelBufferPoolManager::FlushPgImp(page_id_t page_id) {
 }
 
 Page *ParallelBufferPoolManager::NewPgImp(page_id_t *page_id) {
-  // create new page. We will request page allocation in a round robin manner from the underlying
-  // BufferPoolManagerInstances
-  // 1.   From a starting index of the BPMIs, call NewPageImpl until either 1) success and return 2) looped around to
-  // starting index and return nullptr
-  // 2.   Bump the starting index (mod number of instances) to start search at a different BPMI each time this function
-  // is called
+  // create new page. We will request page allocation in a round robin manner
+  // from the underlying BufferPoolManagerInstances 1.  From a starting index
+  // of the BPMIs, call NewPageImpl until either 1) success and return 2)
+  // looped around to starting index and return nullptr
+  // 2.  Bump the starting index (mod number of instances) to start search at a
+  // different BPMI each time this function is called
   return nullptr;
 }
 

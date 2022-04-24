@@ -96,7 +96,6 @@ Page *BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) {
     // Save the page as a backup in disk
     if (pages_[new_frame_id].IsDirty()) {
         disk_manager_->WritePage(new_page_id, pages_[new_frame_id].GetData());
-        pages_[new_frame_id].is_dirty_ = false;  // Reset the dirty page
     }
 
     page_table_.erase(new_page_id);
@@ -133,47 +132,51 @@ Page *BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) {
   // 2.     If R is dirty, write it back to the disk.
   // 3.     Delete R from the page table and insert P.
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
-  // const std::lock_guard<std::mutex> lock(latch_);
+  const std::lock_guard<std::mutex> lock(latch_);
 
-  return nullptr;
+  // Retrieve the page directly if it's in the page table
+  if (IsInPageTable(page_id)) {
+    frame_id_t frame_id = page_table_[page_id];
+    pages_[frame_id].pin_count_++;
+    replacer_->Pin(frame_id);
+    return &pages_[frame_id];
+  }
 
-  // // Retrieve the page directly if it's in the page table
-  // if (IsInPageTable(page_id)) {
-  //   frame_id_t frame_id = page_table_[page_id];
-  //   pages_[frame_id].pin_count_ = 1;
-  //   return &pages_[frame_id];
-  // }
+  frame_id_t new_frame_id = INVALID_PAGE_ID;
+  if (!free_list_.empty()) {
+    new_frame_id = free_list_.front();
+    free_list_.pop_front();
+  } else if (replacer_->Victim(&new_frame_id)) {
+    // Then, find one in the replacer using LRU
+    page_id_t new_page_id = pages_[new_frame_id].GetPageId();
 
-  // // Cant find a victim page because free list is full and
-  // // all existing pages are pinned
-  // frame_id_t victim_frame_id = GetVictimPage();
-  // if (victim_frame_id < 0) {
-  //   return nullptr;
-  // }
+    // Save the page as a backup in disk
+    if (pages_[new_frame_id].IsDirty()) {
+        disk_manager_->WritePage(new_page_id, pages_[new_frame_id].GetData());
+    }
+
+    page_table_.erase(new_page_id);
+  } else {  // free list and all current pages are pinned in buffer pool
+    return nullptr;  // FetchPgimp
+  }
+
+  // Update metadata of the new page
+  pages_[new_frame_id].page_id_ = page_id;
+  pages_[new_frame_id].pin_count_ = 1;
+  pages_[new_frame_id].is_dirty_ = false;
+  pages_[new_frame_id].ResetMemory();  // Zero out its actual data for future loading
+
+  // Read disk page into memory page  
+  disk_manager_->ReadPage(page_id, pages_[new_frame_id].GetData());
   
-  // // Write back to disk and delete it in memory if necessary
-  // if (FlushPgImp(victim_frame_id)) {
-  // }  // Call flush
-  // if (DeletePgImp(victim_frame_id)) {
-  // }  // Call delete
+  // Update the page table
+  // page_table_.erase(old_page_id);
+  page_table_.insert({page_id, new_frame_id});
 
-  // // const std::lock_guard<std::mutex> lock(latch_);
-  // // Update the page table + free list
-  // page_table_.insert({page_id, victim_frame_id});
-  // free_list_.remove(victim_frame_id);
-  // // No need to update the pages_ as it's only a place holder
-
-  // // Update the metadata
-  // // Read in page from the disk
-  // char page_data[PAGE_SIZE] = {0};              // Initialize empty page data stream
-  // disk_manager_->ReadPage(page_id, page_data);  // Read disk page into memory page
-  // // Update the page itself after its memory has been zeroed out
-  // std::memcpy(pages_[victim_frame_id].GetData(), page_data, PAGE_SIZE);
-  // pages_[victim_frame_id].page_id_ = page_id;
-  // pages_[victim_frame_id].is_dirty_ = false;
-  // pages_[victim_frame_id].pin_count_ = 1;
-
-  // return &pages_[victim_frame_id];
+  // Missing
+  replacer_->Pin(new_frame_id);
+  
+  return &pages_[new_frame_id];
 }
 
 bool BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) {
